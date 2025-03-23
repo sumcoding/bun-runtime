@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Clean up any previous builds
+rm -rf bun-*zip bun-linux-* layers .aws-sam
+
+# Create layer directories
+mkdir -p layers/arm64/bin layers/x64/bin
+
+echo "Downloading Bun ARM64..."
+curl -L https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-aarch64.zip -o bun-arm64.zip
+unzip bun-arm64.zip
+mv bun-linux-aarch64/bun layers/arm64/bin/
+cd layers/arm64 && zip -r ../../bun-layer-arm64.zip . && cd ../..
+
+echo "Downloading Bun x64..."
+curl -L https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-x64.zip -o bun-x64.zip
+unzip bun-x64.zip
+mv bun-linux-x64/bun layers/x64/bin/
+cd layers/x64 && zip -r ../../bun-layer-x64.zip . && cd ../..
+
+# Clean up downloaded files
+rm -rf bun-arm64.zip bun-x64.zip bun-linux-* layers
+
+echo "Layer packages created: bun-layer-arm64.zip and bun-layer-x64.zip"
+echo "You can now run: sam build && sam deploy"

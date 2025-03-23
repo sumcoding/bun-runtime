@@ -1,0 +1,67 @@
+name: Check Bun Version and Update Layers
+
+on:
+  schedule:
+    - cron: '0 0 1 * *' # Runs at 00:00 on the first day of every month
+  workflow_dispatch:  # Allows manual triggering
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest Bun version
+        id: bun-version
+        run: |
+          LATEST_VERSION=$(curl -s https://api.github.com/repos/oven-sh/bun/releases/latest | jq -r '.tag_name' | sed 's/bun-v//')
+          CURRENT_VERSION=$(cat .bun-version || echo "0.0.0")
+          echo "latest=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build layers if version changed
+        if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
+        run: |
+          BUN_VERSION="${{ steps.bun-version.outputs.latest }}" ./bootstrap
+
+      - name: Configure AWS credentials
+        if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Deploy updated layers
+        if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
+        run: |
+          sam build
+          sam deploy --no-execute-changeset --parameter-overrides "BunVersion=${{ steps.bun-version.outputs.latest }}"
+
+      - name: Update version file
+        if: success() && steps.bun-version.outputs.latest != steps.bun-version.outputs.current
+        run: |
+          echo "${{ steps.bun-version.outputs.latest }}" > .bun-version
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .bun-version
+          git commit -m "chore: update bun version to ${{ steps.bun-version.outputs.latest }}"
+          git push
+
+      - name: Create GitHub Release
+        if: success() && steps.bun-version.outputs.latest != steps.bun-version.outputs.current
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bun-version.outputs.latest }}
+          name: Bun Runtime v${{ steps.bun-version.outputs.latest }}
+          body: |
+            This release updates the Bun runtime to version ${{ steps.bun-version.outputs.latest }}.
+            
+            ### Changes
+            - Updated Bun to version ${{ steps.bun-version.outputs.latest }}
+            - AWS Lambda layers published for x64 and arm64 architectures
+          draft: false
+          prerelease: false
