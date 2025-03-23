@@ -39,11 +39,11 @@ jobs:
         if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         run: |
           sam build
-          sam deploy /
-          --stack-name bun-runtime /
-          --no-confirm-changeset /
-          --no-fail-on-empty-changeset /
-          --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND /
+          sam deploy \
+          --stack-name bun-runtime \
+          --no-confirm-changeset \
+          --no-fail-on-empty-changeset \
+          --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
           --parameter-overrides "BunVersion=${{ steps.bun-version.outputs.latest }}"
 
       - name: Update version file
