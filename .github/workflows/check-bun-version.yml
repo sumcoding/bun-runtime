@@ -99,7 +99,7 @@ jobs:
             
             ### Changes
             - Updated Bun to version ${{ needs.check.outputs.latest }}
-            - Updated AWS Lambda layer for ARM64 (version ${{ steps.arn-version.outputs.arm64_layer_version }})
-            - Updated AWS Lambda layer for x64 (version ${{ steps.arn-version.outputs.x64_layer_version }})
+            - Updated AWS Lambda layer for ARM64 (version `${{ steps.arn-version.outputs.arm64_layer_version }}`)
+            - Updated AWS Lambda layer for x64 (version `${{ steps.arn-version.outputs.x64_layer_version }}`)
           draft: false
           prerelease: false
