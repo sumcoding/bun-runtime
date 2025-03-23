@@ -13,7 +13,7 @@ Resources:
   BunLayerArm64:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: bun-runtime-arm64
+      LayerName: BunRuntimeArm64
       Description: !Sub "Bun runtime v${BunVersion} (ARM64)"
       ContentUri: ./bun-layer-arm64.zip
       CompatibleArchitectures:
@@ -26,7 +26,7 @@ Resources:
   BunLayerX64:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: bun-runtime-x64
+      LayerName: BunRuntimeX64
       Description: !Sub "Bun runtime v${BunVersion} (x64)"
       ContentUri: ./bun-layer-x64.zip
       CompatibleArchitectures:
@@ -42,7 +42,7 @@ Outputs:
     Value: !Ref BunVersion
     Export:
       Name: BunVersion
-      
+
   BunLayerArm64:
     Description: Bun runtime (ARM64)
     Value: !Ref BunLayerArm64
@@ -60,11 +60,12 @@ Metadata:
     Name: bun-runtime
     Description: >
       Bun runtime packaged as a Lambda layer.
+      Bundles Bun runtime for ARM64 and x64 architectures.
     Author: Summer Phillips
     SpdxLicenseId: MIT
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     Labels: ['layer', 'bun', 'lambda', 'bun-runtime']
     HomePageUrl: https://github.com/sumcoding/bun-runtime
-    SemanticVersion: 0.1.0
+    SemanticVersion: !Ref BunVersion
     SourceCodeUrl: https://github.com/sumcoding/bun-runtime

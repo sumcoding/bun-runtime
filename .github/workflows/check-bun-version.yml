@@ -35,7 +35,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Deploy updated layers
+      - name: Build, Deploy and Publish layers
         if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         run: |
           sam build
@@ -46,6 +46,14 @@ jobs:
           --no-fail-on-empty-changeset \
           --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
           --parameter-overrides "BunVersion=${{ steps.bun-version.outputs.latest }}"
+
+          sam package \
+            --output-template-file packaged.yaml \
+            --resolve-s3
+          
+          sam publish \
+            --template-file packaged.yaml \
+            --semantic-version ${{ steps.bun-version.outputs.latest }}
 
       - name: Update version file
         if: success() && steps.bun-version.outputs.latest != steps.bun-version.outputs.current
@@ -62,7 +70,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.bun-version.outputs.latest }}
-          name: Bun Runtime v${{ steps.bun-version.outputs.latest }}
+          name: Bun runtime layer with v${{ steps.bun-version.outputs.latest }}
           body: |
             This release updates the Bun runtime to version ${{ steps.bun-version.outputs.latest }}.
             
