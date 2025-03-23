@@ -36,24 +36,6 @@ Resources:
       LicenseInfo: https://github.com/sumcoding/bun-runtime/blob/main/LICENSE
       RetentionPolicy: Retain
 
-  BunLayerX64VersionPermission:
-    Type: AWS::Lambda::LayerVersionPermission
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      Action: lambda:GetLayerVersion
-      LayerVersionArn: !Ref BunLayerX64
-      Principal: '*'
-
-  BunLayerArm64VersionPermission:
-    Type: AWS::Lambda::LayerVersionPermission
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      Action: lambda:GetLayerVersion
-      LayerVersionArn: !Ref BunLayerArm64
-      Principal: '*'
-
 Outputs:
   BunVersion:
     Description: The version of Bun
@@ -72,3 +54,18 @@ Outputs:
     Value: !Ref BunLayerX64
     Export:
       Name: BunLayerX64
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: bun-runtime
+    Description: >
+      Bun runtime packaged as a Lambda layer.
+      Bundles Bun runtime for ARM64 and x64 architectures.
+    Author: Summer Phillips
+    SpdxLicenseId: MIT
+    LicenseUrl: LICENSE
+    ReadmeUrl: README.md
+    Labels: ['layer', 'bun', 'lambda', 'bun-runtime']
+    HomePageUrl: https://github.com/sumcoding/bun-runtime
+    SemanticVersion: !Ref BunVersion
+    SourceCodeUrl: https://github.com/sumcoding/bun-runtime

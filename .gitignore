@@ -1,4 +1,5 @@
 .aws-sam/*
 *.zip
 samconfig.toml
+packaged.yml
 packaged.yaml

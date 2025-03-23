@@ -35,20 +35,25 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Build, Deploy and Publish layers
+      - name: Build and Deploy layers
         if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         run: |
-          sam build
+          sam build 
           sam deploy \
           --stack-name bun-runtime \
           --no-confirm-changeset \
           --resolve-s3 \
+          --no-execute-changeset ]
           --no-fail-on-empty-changeset \
           --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
           --parameter-overrides "BunVersion=${{ steps.bun-version.outputs.latest }}"
 
+      - name: Publish layers
+        if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
+        run: |
+          sam build --template-file publish.yml
           sam package \
-            --output-template-file packaged.yaml \
+            --output-template-file packaged.yml \
             --resolve-s3
           
           sam publish \
