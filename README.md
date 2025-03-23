@@ -10,10 +10,10 @@ This repository provides [Bun](https://bun.sh/) as an AWS Lambda runtime layer. 
 Two architecture layers are available:
 
 #### BunRuntimeArm64
-`arn:aws:lambda:{region}:{account}:layer:BunRuntimeArm64:1`
+`arn:aws:lambda:us-east-1:582637575117:layer:BunRuntimeArm64:1`
 
 #### BunRuntimeX64 
-`arn:aws:lambda:{region}:{account}:layer:BunRuntimeX64:1`
+`arn:aws:lambda:us-east-1:582637575117:layer:BunRuntimeX64:1`
 
 ## Automatic Updates
 
