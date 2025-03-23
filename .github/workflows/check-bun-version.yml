@@ -10,8 +10,11 @@ permissions:
   id-token: write
 
 jobs:
-  check-and-update:
+  check:
     runs-on: ubuntu-latest
+    outputs: 
+      latest: ${{ steps.bun-version.outputs.latest }}
+      current: ${{ steps.bun-version.outputs.current }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,20 +26,24 @@ jobs:
           echo "latest=$LATEST_VERSION" >> $GITHUB_OUTPUT
           echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
+  update:
+    runs-on: ubuntu-latest
+    needs: check
+    if: needs.check.outputs.latest != needs.check.outputs.current
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Build layers if version changed
-        if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         run: |
-          BUN_VERSION="${{ steps.bun-version.outputs.latest }}" ./bootstrap
+          BUN_VERSION="${{ needs.check.outputs.latest }}" ./bootstrap
 
       - name: Configure AWS credentials
-        if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Build and Deploy layers
-        if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         run: |
           sam build 
           sam deploy \
@@ -46,10 +53,9 @@ jobs:
           --no-execute-changeset ]
           --no-fail-on-empty-changeset \
           --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
-          --parameter-overrides "BunVersion=${{ steps.bun-version.outputs.latest }}"
+          --parameter-overrides "BunVersion=${{ needs.check.outputs.latest }}"
 
       - name: Publish layers
-        if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         run: |
           sam build --template-file publish.yml
           sam package \
@@ -58,29 +64,42 @@ jobs:
           
           sam publish \
             --template-file packaged.yaml \
-            --semantic-version ${{ steps.bun-version.outputs.latest }}
+            --semantic-version ${{ needs.check.outputs.latest}}
 
       - name: Update version file
-        if: success() && steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         run: |
-          echo "${{ steps.bun-version.outputs.latest }}" > .bun-version
+          echo "${{ needs.check.outputs.latest }}" > .bun-version
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add .bun-version
-          git commit -m "chore: update bun version to ${{ steps.bun-version.outputs.latest }}"
+          git commit -m "chore: update bun version to ${{ needs.check.outputs.latest }}"
           git push
 
+      - name: Arn Version
+        id: arn-version
+        run: |
+          STACK_OUTPUTS=$(sam list stack-outputs --stack-name bun-runtime --output json)
+          
+          ARM64_LAYER_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey=="BunLayerArm64") | .OutputValue')
+          X64_LAYER_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey=="BunLayerX64") | .OutputValue')
+          
+          ARM64_LAYER_VERSION=$(echo $ARM64_LAYER_ARN | awk -F: '{print $NF}')
+          X64_LAYER_VERSION=$(echo $X64_LAYER_ARN | awk -F: '{print $NF}')
+          
+          echo "arm64_layer_version=$ARM64_LAYER_VERSION" >> $GITHUB_OUTPUT
+          echo "x64_layer_version=$X64_LAYER_VERSION" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
-        if: success() && steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.bun-version.outputs.latest }}
-          name: Bun runtime layer with v${{ steps.bun-version.outputs.latest }}
+          tag_name: v${{ needs.check.outputs.latest }}
+          name: Bun runtime layer with v${{ needs.check.outputs.latest }}
           body: |
-            This release updates the Bun runtime to version ${{ steps.bun-version.outputs.latest }}.
+            This release updates the Bun runtime to version ${{ needs.check.outputs.latest }}.
             
             ### Changes
-            - Updated Bun to version ${{ steps.bun-version.outputs.latest }}
-            - AWS Lambda layers published for x64 and arm64 architectures
+            - Updated Bun to version ${{ needs.check.outputs.latest }}
+            - Updated AWS Lambda layer for ARM64 (version ${{ steps.arn-version.outputs.arm64_layer_version }})
+            - Updated AWS Lambda layer for x64 (version ${{ steps.arn-version.outputs.x64_layer_version }})
           draft: false
           prerelease: false

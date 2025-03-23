@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Bun runtime packaged as a Lambda layer. This is bun itself not the lambda runtime layer bun also provides.
+  Bun runtime packaged as a Lambda layer.
 
 Parameters:
   BunVersion:
@@ -64,7 +64,7 @@ Metadata:
     Author: Summer Phillips
     SpdxLicenseId: MIT
     LicenseUrl: LICENSE
-    ReadmeUrl: README.md
+    ReadmeUrl: PUBLISH.md
     Labels: ['layer', 'bun', 'lambda', 'bun-runtime']
     HomePageUrl: https://github.com/sumcoding/bun-runtime
     SemanticVersion: !Ref BunVersion
