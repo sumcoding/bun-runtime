@@ -39,7 +39,7 @@ jobs:
         if: steps.bun-version.outputs.latest != steps.bun-version.outputs.current
         run: |
           sam build
-          sam deploy --no-execute-changeset --parameter-overrides "BunVersion=${{ steps.bun-version.outputs.latest }}"
+          sam deploy --stack-name bun-runtime --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides "BunVersion=${{ steps.bun-version.outputs.latest }}"
 
       - name: Update version file
         if: success() && steps.bun-version.outputs.latest != steps.bun-version.outputs.current

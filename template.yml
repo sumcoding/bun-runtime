@@ -38,13 +38,13 @@ Resources:
 
 Outputs:
   BunLayerArm64:
-    Description: Bun runtime (ARM64)
+    Description: !Sub "Bun runtime v${BunVersion} (ARM64)"
     Value: !Ref BunLayerArm64
     Export:
       Name: BunLayerArm64
 
   BunLayerX64:
-    Description: Bun runtime (x64)
+    Description: !Sub "Bun runtime v${BunVersion} (x64)"
     Value: !Ref BunLayerX64
     Export:
       Name: BunLayerX64
