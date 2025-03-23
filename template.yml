@@ -37,14 +37,20 @@ Resources:
       RetentionPolicy: Retain
 
 Outputs:
+  BunVersion:
+    Description: The version of Bun
+    Value: !Ref BunVersion
+    Export:
+      Name: BunVersion
+      
   BunLayerArm64:
-    Description: !Sub "Bun runtime v${BunVersion} (ARM64)"
+    Description: Bun runtime (ARM64)
     Value: !Ref BunLayerArm64
     Export:
       Name: BunLayerArm64
 
   BunLayerX64:
-    Description: !Sub "Bun runtime v${BunVersion} (x64)"
+    Description: Bun runtime(x64)
     Value: !Ref BunLayerX64
     Export:
       Name: BunLayerX64
