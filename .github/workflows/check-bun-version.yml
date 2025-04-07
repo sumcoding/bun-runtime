@@ -30,6 +30,35 @@ jobs:
     runs-on: ubuntu-latest
     needs: check
     if: needs.check.outputs.latest != needs.check.outputs.current
+    strategy:
+      matrix:
+        region:
+          - af-south-1
+          - ap-east-1
+          - me-south-1
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ap-south-1
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - eu-south-1
+          - eu-south-2
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - sa-east-1
+          - ca-central-1
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+         
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +70,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+          aws-region: ${{ matrix.region }}
 
       - name: Build and Deploy layers
         run: |
@@ -50,56 +79,58 @@ jobs:
           --stack-name bun-runtime \
           --no-confirm-changeset \
           --resolve-s3 \
-          --no-execute-changeset ]
+          --no-execute-changeset \
           --no-fail-on-empty-changeset \
           --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
           --parameter-overrides "BunVersion=${{ needs.check.outputs.latest }}"
 
-      - name: Publish layers
-        run: |
-          sam build --template-file publish.yml
-          sam package \
-            --output-template-file packaged.yml \
-            --resolve-s3
-          
-          sam publish \
-            --template-file packaged.yaml \
-            --semantic-version ${{ needs.check.outputs.latest}}
+  # finalize:
+  #   runs-on: ubuntu-latest
+  #   needs: [check, update]
+  #   if: needs.check.outputs.latest != needs.check.outputs.current
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Update version file
-        run: |
-          echo "${{ needs.check.outputs.latest }}" > .bun-version
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add .bun-version
-          git commit -m "chore: update bun version to ${{ needs.check.outputs.latest }}"
-          git push
+  #     - name: Update version file
+  #       run: |
+  #         echo "${{ needs.check.outputs.latest }}" > .bun-version
+  #         git config --global user.name 'github-actions[bot]'
+  #         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+  #         git add .bun-version
+  #         git commit -m "chore: update bun version to ${{ needs.check.outputs.latest }}"
+  #         git push
 
-      - name: Arn Version
-        id: arn-version
-        run: |
-          STACK_OUTPUTS=$(sam list stack-outputs --stack-name bun-runtime --output json)
-          
-          ARM64_LAYER_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey=="BunLayerArm64") | .OutputValue')
-          X64_LAYER_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey=="BunLayerX64") | .OutputValue')
-          
-          ARM64_LAYER_VERSION=$(echo $ARM64_LAYER_ARN | awk -F: '{print $NF}')
-          X64_LAYER_VERSION=$(echo $X64_LAYER_ARN | awk -F: '{print $NF}')
-          
-          echo "arm64_layer_version=$ARM64_LAYER_VERSION" >> $GITHUB_OUTPUT
-          echo "x64_layer_version=$X64_LAYER_VERSION" >> $GITHUB_OUTPUT
+      
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+  #         aws-region: us-east-1 # trusted as source of truth for the layer version
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ needs.check.outputs.latest }}
-          name: Bun runtime layer with v${{ needs.check.outputs.latest }}
-          body: |
-            This release updates the Bun runtime to version ${{ needs.check.outputs.latest }}.
+  #     - name: Arn Version
+  #       id: arn_version
+  #       run: |
+  #         STACK_OUTPUTS=$(sam list stack-outputs --stack-name bun-runtime --output json)
+          
+  #         ARM64_LAYER_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey=="BunLayerArm64") | .OutputValue')
+  #         X64_LAYER_ARN=$(echo "$STACK_OUTPUTS" | jq -r '.[] | select(.OutputKey=="BunLayerX64") | .OutputValue')
+          
+  #         ARM64_LAYER_VERSION=$(echo $ARM64_LAYER_ARN | awk -F: '{print $NF}')
+  #         X64_LAYER_VERSION=$(echo $X64_LAYER_ARN | awk -F: '{print $NF}')
+          
+  #         echo "arm64_layer_version=$ARM64_LAYER_VERSION" >> $GITHUB_OUTPUT
+  #         echo "x64_layer_version=$X64_LAYER_VERSION" >> $GITHUB_OUTPUT
+
+  #     - name: Create GitHub Release
+  #       uses: softprops/action-gh-release@v1
+  #       with:
+  #         tag_name: v${{ needs.check.outputs.latest }}
+  #         name: Bun runtime layer with v${{ needs.check.outputs.latest }}
+  #         body: |
+  #           This release updates the Bun runtime to version ${{ needs.check.outputs.latest }}.
             
-            ### Changes
-            - Updated Bun to version ${{ needs.check.outputs.latest }}
-            - Updated AWS Lambda layer for ARM64 (version `${{ steps.arn-version.outputs.arm64_layer_version }}`)
-            - Updated AWS Lambda layer for x64 (version `${{ steps.arn-version.outputs.x64_layer_version }}`)
-          draft: false
-          prerelease: false
+  #           ### Layer Information
+  #           - ARM64: Version `${{ steps.arn_version.outputs.arm64_layer_version }}`
+  #           - x64: Version `${{ steps.arn_version.outputs.x64_layer_version }}`
+  #         draft: false
+  #         prerelease: false
