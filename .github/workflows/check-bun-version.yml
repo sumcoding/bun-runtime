@@ -77,6 +77,7 @@ jobs:
           sam build 
           sam deploy \
           --stack-name bun-runtime \
+          --s3-prefix "bun-runtime/${{ needs.check.outputs.latest }}" \
           --no-confirm-changeset \
           --resolve-s3 \
           --no-fail-on-empty-changeset \
